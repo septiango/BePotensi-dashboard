@@ -369,7 +369,7 @@ function renderTable() {
 }
 
 // ===== TAMBAHAN UNTUK API INTEGRATION =====
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMr8yFPUbJ8qK0bKDk23t9URwmUdwFK5aeE_wa0Xwki-a0SI80iLDAwTCAp3gVwQ8NFw/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJwzBiW8CwIIslkX3TOH0dQBWFKjT0RnxK6fyDMHxf_hwEdjJ4uopchg8JLfUk8lDXQA/exec';
 
 async function loadCSVFromAPI() {
   showLoading(true);
