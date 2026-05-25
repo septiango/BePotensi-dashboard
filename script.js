@@ -368,36 +368,7 @@ function renderTable() {
   });
 }
 
-// ── Event Listeners Untuk Filter & Search ─────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  // Listener untuk kotak pencarian
-  const searchInput = document.getElementById('search-input');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      searchKey = e.target.value;
-      renderTable(); // Update tabel setiap kali ketikan berubah
-    });
-  }
-
-  // Listener untuk navigasi tab filter (Semua / Backlog / Bukan BL)
-  const filterTabs = document.querySelectorAll('.filter-tab');
-  filterTabs.forEach(tab => {
-    tab.addEventListener('click', (e) => {
-      // Hilangkan class 'active' dari semua tab
-      filterTabs.forEach(t => t.classList.remove('active'));
-      
-      // Tambahkan 'active' pada tab yang sedang diklik
-      e.target.classList.add('active');
-      
-      // Perbarui variable filterMode menggunakan dataset
-      filterMode = e.target.dataset.f; 
-      
-      renderTable(); // Render ulang tabel berdasarkan mode
-    });
-  });
-});
-
-// ===== API INTEGRATION =====
+// ===== TAMBAHAN UNTUK API INTEGRATION =====
 async function loadCSVFromAPI() {
   showLoading(true);
   
@@ -437,9 +408,44 @@ function showToastMsg(msg, type = 'ok') {
 
 window.loadCSVFromAPI = loadCSVFromAPI;
 
-// Auto-refresh setiap 10 menit (lebih hemat request)
+// Auto-refresh setiap 10 menit
 setInterval(() => {
   if (localStorage.getItem('fmis_token')) {
     loadCSVFromAPI();
   }
 }, 10 * 60 * 1000);
+
+
+// ── 🆕 INISIALISASI EVENT LISTENERS (PENCARIAN & FILTER TAB) ─────────────────
+function initDashboardControls() {
+  // 1. Handler Real-time Input Pencarian
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchKey = e.target.value;
+      renderTable(); // Filter ulang tabel setiap kali user mengetik
+    });
+  }
+
+  // 2. Handler Klik Navigasi Tab (Semua, Backlog, Bukan BL)
+  const tabs = document.querySelectorAll('.filter-tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      // Hapus kelas 'active' dari semua tab
+      tabs.forEach(t => t.classList.remove('active'));
+      // Tambahkan kelas 'active' ke tab yang sedang diklik
+      e.currentTarget.classList.add('active');
+      
+      // Ambil nilai filter dari atribut HTML data-f ("all", "backlog", "bukan")
+      filterMode = e.currentTarget.dataset.f;
+      renderTable(); // Refresh tabel berdasarkan mode filter terpilih
+    });
+  });
+}
+
+// Menjalankan fungsi di atas segera setelah dokumen HTML selesai diparse
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDashboardControls);
+} else {
+  initDashboardControls();
+}
