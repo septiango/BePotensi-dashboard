@@ -523,12 +523,13 @@ table.main-tbl tbody tr:hover td.col-keyid,
 table.main-tbl tbody tr:hover td.col-luas,
 table.main-tbl tbody tr:hover td.col-act { background: #232a3b !important; }
 
-
 /* ========================================================== */
-/* ======== FITUR CETAK (PRINT & PDF) RAPI & DARK MODE ====== */
+/* ======== FITUR CETAK (PRINT & PDF) COMPACT & SMART ======= */
 /* ========================================================== */
 @media print {
-  /* PAKSA BROWSER UNTUK MENCETAK WARNA BACKGROUND & FONT (DARK MODE UTUH) */
+  /* =============================================== */
+  /* MODE DEFAULT SAAT TOMBOL "PDF" DIKLIK (WARNA)   */
+  /* =============================================== */
   html, body {
     background: var(--bg) !important;
     color: var(--text) !important;
@@ -537,62 +538,84 @@ table.main-tbl tbody tr:hover td.col-act { background: #232a3b !important; }
     color-adjust: exact !important;
   }
 
-  /* Sembunyikan SEMUA elemen grafis, chart, dan tombol saat diprint */
+  /* Sembunyikan elemen dashboard yg tdk perlu dicetak */
   #loginContainer, .topbar, .kpi-row, .overview-wrap, .sec-head, 
   .legend-strip, .charts-grid, .bottom-grid, .alert-card, .footer, 
   .loading-overlay, .toast, .search-wrap, .tab-row, .export-row {
     display: none !important;
   }
 
-  /* Reset jarak pada container tabel agar mentok ke tepi PDF */
-  .wrap { 
-    padding: 0 !important; 
-    margin: 0 !important; 
-    max-width: 100% !important; 
-  }
+  /* Rapikan Layout */
+  .wrap { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
   .filter-bar { 
-    border: none !important; 
-    box-shadow: none !important; 
-    background: transparent !important; 
-    padding: 0 0 10px 0 !important;
-    margin: 0 !important;
+    border: none !important; box-shadow: none !important; background: transparent !important; 
+    padding: 0 0 10px 0 !important; margin: 0 !important;
   }
   .table-outer { 
-    border: 1px solid var(--border) !important; 
-    box-shadow: none !important; 
-    margin: 0 !important; 
-    background: var(--card) !important;
+    border: 1px solid var(--border) !important; box-shadow: none !important; 
+    margin: 0 !important; background: var(--card) !important;
   }
 
-  /* Membuat Tabel Sangat Rapat/Compact Untuk Print & Pertahankan Warna */
-  table.main-tbl { 
-    min-width: 100% !important; 
-    border-collapse: collapse !important; 
-  }
+  table.main-tbl { min-width: 100% !important; border-collapse: collapse !important; }
   table.main-tbl th, table.main-tbl td { 
-    padding: 4px !important; 
-    font-size: 8.5px !important; 
+    padding: 4px !important; font-size: 8.5px !important; 
     border-right: 1px solid var(--border) !important;
     border-bottom: 1px solid var(--border) !important;
-    white-space: normal !important; /* Biarkan teks yang panjang turun ke bawah (wrap) */
-    word-break: break-word;
+    white-space: normal !important; word-break: break-word;
   }
-  table.main-tbl th { 
-    background: var(--bg3) !important; 
-    color: var(--text2) !important; 
-    text-align: left !important;
-  }
+  table.main-tbl th { background: var(--bg3) !important; color: var(--text2) !important; text-align: left !important; }
 
-  /* Lepas freeze (sticky) saat dicetak agar halaman ke-2 PDF tidak error berantakan */
+  /* Lepas freeze kolom agar cetakan rapi & tdk bertumpuk di page-2 */
   table.main-tbl th.col-keyid, table.main-tbl td.col-keyid,
   table.main-tbl th.col-luas, table.main-tbl td.col-luas,
   table.main-tbl th.col-act, table.main-tbl td.col-act {
     position: static !important;
   }
+  
+  @page { size: A4 portrait; margin: 8mm; }
 
-  /* Aturan format halaman untuk HP (Portrait A4) dengan margin tipis */
-  @page { 
-    size: A4 portrait; 
-    margin: 8mm; 
+  /* ========================================================== */
+  /* OVERRIDE KHUSUS SAAT TOMBOL "PRINT KERTAS" DIKLIK (B&W)  */
+  /* ========================================================== */
+  body.print-bw-mode {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  body.print-bw-mode .table-outer {
+    border: 1px solid #000 !important;
+    background: #ffffff !important;
+  }
+  body.print-bw-mode table.main-tbl th, 
+  body.print-bw-mode table.main-tbl td {
+    border-right: 1px solid #000 !important;
+    border-bottom: 1px solid #000 !important;
+    color: #000 !important;
+  }
+  body.print-bw-mode table.main-tbl th {
+    background: #f0f0f0 !important;
+    color: #000 !important;
+  }
+  body.print-bw-mode #subtotal-luas, 
+  body.print-bw-mode .row-count {
+    color: #000 !important;
+  }
+  
+  /* Ubah badge dan chip menjadi outline tanpa isi warna agar hitam pekat & jelas */
+  body.print-bw-mode .tbl-badge, 
+  body.print-bw-mode .ps-chip {
+    background: transparent !important;
+    color: #000 !important;
+    border: 1px solid #000 !important;
+  }
+  
+  /* Tegaskan Font untuk Hitam Putih */
+  body.print-bw-mode .keyid-cell,
+  body.print-bw-mode .hari-neg, 
+  body.print-bw-mode .hari-pos, 
+  body.print-bw-mode .hari-zero,
+  body.print-bw-mode .komit-y, 
+  body.print-bw-mode .komit-n {
+    color: #000 !important;
+    font-weight: bold !important;
   }
 }
