@@ -33,7 +33,7 @@ function formatNumericDate(dateStr) {
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const y = date.getFullYear();
     
-    return `${d}-${m}-${y}`; // Hasil akhir singkat: 12-05-2026
+    return `${d}-${m}-${y}`; 
   } catch (e) {
     return dateStr;
   }
@@ -47,7 +47,6 @@ function parseCSV(rows) {
     const hari = parseInt(row['Hari']) || 0;
     const pk = PROG_KEY(row['Progress Status']);
     
-    // Tangkap data milliseconds khusus untuk Sort Date
     let dl_sort_val = 0;
     if (row['DATELINE'] && row['DATELINE'] !== '-') {
       const d = new Date(row['DATELINE']);
@@ -70,7 +69,7 @@ function parseCSV(rows) {
       ProgPct: parseFloat(row['Prog(%)']) || 0,
       QCPct: parseFloat(row['QC(%)']) || 0,
       DL: formatNumericDate(row['DATELINE']), 
-      DL_sort: dl_sort_val, // Nilai referensi rahasia untuk sortir A-Z Tanggal
+      DL_sort: dl_sort_val,
       Komit: row['Komitmen 22'] || '-',
       isBacklog: bl === 'Backlog1' || bl === 'Backlog2' || bl === 'Backlog3',
       pk,
@@ -345,28 +344,28 @@ function renderTable() {
     );
   }
 
-  // 2. PENGURUTAN (SORTING) 100% UNTUK SEMUA KOLOM
+  // 2. PENGURUTAN (SORTING)
   rows.sort((a, b) => {
     let va = a[sortCol];
     let vb = b[sortCol];
     
-    // Safety check fallback
     if (va === undefined) va = '';
     if (vb === undefined) vb = '';
 
-    // Deteksi jika tipe datanya numerik
     if (['No', 'Luas', 'Hari', 'ProgPct', 'QCPct', 'DL_sort'].includes(sortCol)) {
       va = parseFloat(va) || 0;
       vb = parseFloat(vb) || 0;
       return (va - vb) * sortDir;
     }
-    // Sort biasa (String/Text A-Z)
     return String(va).localeCompare(String(vb)) * sortDir;
   });
 
-  if ($('row-count')) $('row-count').textContent = `${rows.length} baris ditampilkan`;
+  // MODIFIKASI: Hitung subtotal luas dinamis dan ganti teks jumlah baris menjadi 'Jumlah Petak'
+  const subtotalLuasActive = rows.reduce((s, r) => s + r.Luas, 0);
+  if ($('row-count')) $('row-count').textContent = `Jumlah Petak: ${rows.length}`;
+  if ($('subtotal-luas')) $('subtotal-luas').textContent = `Subtotal (filter aktif): ${f1(subtotalLuasActive)} Ha`;
 
-  // 3. RENDER HTML KE DALAM TABEL
+  // 3. RENDER HTML
   if (!rows.length) {
     if ($('tbl-body')) $('tbl-body').innerHTML = `<tr><td colspan="11"><div class="no-data">🔍 Tidak ada data</div></td></tr>`;
     return;
@@ -390,8 +389,6 @@ function renderTable() {
       const komitCls = r.Komit === 'Terkejar' ? 'komit-y' : (r.Komit === 'Tidak Terkejar' ? 'komit-n' : '');
       const komitStr = r.Komit === 'Terkejar' ? '✔' : (r.Komit === 'Tidak Terkejar' ? '✘' : '-');
 
-      // (index + 1) -> memastikan no urut berurutan tanpa putus walau sudah difilter/sort.
-      // col-keyid, col-luas, col-act dipasang agar dapat di-freeze oleh css
       return `<tr class="${rowCls}">
         <td style="color:var(--text3);font-size:10px;text-align:center">${index + 1}</td>
         <td><span class="${blBadge}">${blLabel}</span></td>
@@ -429,7 +426,7 @@ function initTableSort() {
       sp.textContent = sortDir === 1 ? '▲' : '▼';
       th.appendChild(sp);
       
-      renderTable(); // Update isi tabel tanpa me-reload data dari awal
+      renderTable();
     };
   });
 }
@@ -472,7 +469,6 @@ function showToastMsg(msg, type = 'ok') {
 
 window.loadCSVFromAPI = loadCSVFromAPI;
 
-// Auto-refresh data otomatis dari server setiap 10 menit
 setInterval(() => {
   if (localStorage.getItem('fmis_token')) {
     loadCSVFromAPI();
@@ -481,7 +477,6 @@ setInterval(() => {
 
 // ── INISIALISASI EVENT LISTENERS KONTROL UTAMA ────────────────────────────
 function initDashboardControls() {
-  // 1. Handler Real-time Input Kotak Pencarian
   const searchInput = document.getElementById('search-input');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
@@ -490,7 +485,6 @@ function initDashboardControls() {
     });
   }
 
-  // 2. Handler Navigasi Tab Utama Atas (Semua, Backlog, Bukan BL)
   const tabs = document.querySelectorAll('.filter-tab');
   tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
@@ -502,7 +496,6 @@ function initDashboardControls() {
     });
   });
 
-  // 3. Mengaktifkan Sorting Header Table
   initTableSort();
 }
 
