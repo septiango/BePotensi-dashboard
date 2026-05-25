@@ -142,12 +142,21 @@
         <span class="search-icon">🔍</span>
         <input type="text" class="search-input" id="search-input" placeholder="Cari KeyID, aktivitas, SPV, COOR..."/>
       </div>
-      <div class="tab-row">
-        <button class="filter-tab active t-all" data-f="all">Semua</button>
-        <button class="filter-tab t-bl" data-f="backlog">Backlog</button>
-        <button class="filter-tab t-bk" data-f="bukan">Bukan BL</button>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <div class="tab-row" style="flex: 1; min-width: 200px;">
+          <button class="filter-tab active t-all" data-f="all">Semua</button>
+          <button class="filter-tab t-bl" data-f="backlog">Backlog</button>
+          <button class="filter-tab t-bk" data-f="bukan">Bukan BL</button>
+        </div>
+        
+        <div class="export-row">
+          <button class="btn-export" onclick="window.print()" title="Export ke PDF">📄 PDF</button>
+          <button class="btn-export" onclick="window.print()" title="Print Tabel">🖨️ Print</button>
+        </div>
       </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; flex-wrap: wrap; gap: 4px;">
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; flex-wrap: wrap; gap: 4px;">
         <div class="row-count" id="row-count" style="margin-top: 0;">Jumlah Petak: —</div>
         <div id="subtotal-luas" style="font-size: 11px; font-weight: 700; color: var(--accent); font-family: 'IBM Plex Mono', monospace;">Subtotal (filter aktif): — Ha</div>
       </div>
