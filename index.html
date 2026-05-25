@@ -96,7 +96,6 @@
 </div>
 
 <div id="dashboardWrapper" class="dashboard-wrapper">
-  <div id="dropzone-overlay"><div class="dz-box"><div class="dz-icon">📂</div><div class="dz-title">Drop file CSV di sini</div><div class="dz-sub">Data akan langsung diperbarui</div></div></div>
   <div id="loading" class="loading-overlay"><div class="spinner"></div><div class="loading-text">Memuat data...</div></div>
   <div id="toast" class="toast"></div>
 
@@ -108,11 +107,7 @@
     <div class="topbar-right">
       <div class="topbar-update" id="topbar-update">⟳ Update Terakhir: —</div>
       <div class="topbar-actions">
-        <button class="btn-icon logout-btn" id="btn-logout" title="Logout">🚪</button>
-        <button class="btn-icon" id="btn-export-html" title="Export HTML">🌐</button>
-        <button class="btn-icon" id="btn-export-excel" title="Export Excel">📊</button>
-        <button class="btn-icon" id="btn-export-pdf" title="Export PDF HD">🖨</button>
-        <label class="btn-upload" title="Upload CSV"><input type="file" id="file-input" accept=".csv" style="display:none"/><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>CSV</label>
+        <button class="btn-icon logout-btn" id="btn-logout" title="Logout">🚪 Logout</button>
       </div>
     </div>
   </nav>
@@ -162,15 +157,15 @@
             <tr>
               <th data-col="No" class="sorted">No<span class="sort-arr">▲</span></th>
               <th data-col="Backlog">Tipe</th>
-              <th data-col="KeyID">KeyID</th>
-              <th data-col="Luas" style="text-align:right">Luas</th>
-              <th data-col="Activity Description">Aktivitas</th>
-              <th data-col="Progress Status">Status</th>
+              <th data-col="KeyID" class="col-keyid">KeyID</th>
+              <th data-col="Luas" class="col-luas" style="text-align:right">Luas</th>
+              <th data-col="Act" class="col-act">Aktivitas</th>
+              <th data-col="pk">Status</th>
               <th data-col="Hari" style="text-align:right">Hari</th>
               <th data-col="SPV">SPV</th>
               <th data-col="COOR">COOR</th>
-              <th data-col="DATELINE">Deadline</th>
-              <th data-col="Komitmen 22" style="text-align:center">Komit</th>
+              <th data-col="DL_sort">Deadline</th>
+              <th data-col="Komit" style="text-align:center">Komit</th>
             </tr>
           </thead>
           <tbody id="tbl-body">
@@ -191,9 +186,6 @@
   <footer class="footer"><strong>FMIS Dashboard Nilo</strong> · Secure Portal · Data realtime</footer>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="script.js"></script>
 
 <script>
