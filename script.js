@@ -489,3 +489,55 @@ if (document.readyState === 'loading') {
 } else {
   initDashboardControls();
 }
+
+// ── LOGIN HANDLING LAYER ──────────────────────────────────────────────────
+async function handleLogin(e) {
+  e.preventDefault();
+  const u = $('username').value;
+  const p = $('password').value;
+  const err = $('loginError');
+  err.style.display = 'none';
+  showLoading(true);
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`);
+    const r = await res.json();
+    if (r.success) {
+      authToken = r.token;
+      currentUser = r.username;
+      localStorage.setItem('fmis_token', r.token);
+      localStorage.setItem('fmis_user', r.username);
+      loadDashboard();
+    } else {
+      err.textContent = r.error || 'Login gagal';
+      err.style.display = 'block';
+    }
+  } catch (error) {
+    err.textContent = 'Koneksi gagal. Periksa jaringan Anda.';
+    err.style.display = 'block';
+  }
+  showLoading(false);
+}
+
+function logout() {
+  localStorage.removeItem('fmis_token');
+  localStorage.removeItem('fmis_user');
+  authToken = null;
+  currentUser = null;
+  $('loginContainer').style.display = 'flex';
+  $('dashboardWrapper').style.display = 'none';
+}
+
+async function loadDashboard() {
+  $('loginContainer').style.display = 'none';
+  $('dashboardWrapper').style.display = 'block';
+  await loadCSVFromAPI();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const tok = localStorage.getItem('fmis_token');
+  if (tok) {
+    authToken = tok;
+    currentUser = localStorage.getItem('fmis_user');
+    loadDashboard();
+  }
+});
