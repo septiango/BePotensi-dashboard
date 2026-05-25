@@ -368,15 +368,40 @@ function renderTable() {
   });
 }
 
-// ===== TAMBAHAN UNTUK API INTEGRATION =====
-// PERHATIAN: APPS_SCRIPT_URL sudah dideklarasikan di index.html, JANGAN deklarasi ulang di sini!
-// Hanya gunakan variabel yang sudah ada dari global scope.
+// ── Event Listeners Untuk Filter & Search ─────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Listener untuk kotak pencarian
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchKey = e.target.value;
+      renderTable(); // Update tabel setiap kali ketikan berubah
+    });
+  }
 
+  // Listener untuk navigasi tab filter (Semua / Backlog / Bukan BL)
+  const filterTabs = document.querySelectorAll('.filter-tab');
+  filterTabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      // Hilangkan class 'active' dari semua tab
+      filterTabs.forEach(t => t.classList.remove('active'));
+      
+      // Tambahkan 'active' pada tab yang sedang diklik
+      e.target.classList.add('active');
+      
+      // Perbarui variable filterMode menggunakan dataset
+      filterMode = e.target.dataset.f; 
+      
+      renderTable(); // Render ulang tabel berdasarkan mode
+    });
+  });
+});
+
+// ===== API INTEGRATION =====
 async function loadCSVFromAPI() {
   showLoading(true);
   
   try {
-    // Gunakan variabel APPS_SCRIPT_URL dari global (sudah dideklarasi di index.html)
     const token = localStorage.getItem('fmis_token');
     if (!token) throw new Error('No auth token');
     
