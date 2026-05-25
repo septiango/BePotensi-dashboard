@@ -585,12 +585,19 @@ table.main-tbl tbody tr:hover td.col-act { background: #232a3b !important; }
     border: 1px solid #000 !important;
     background: #ffffff !important;
   }
+  
+  /* MODIFIKASI: Memaksa Latar Belakang Semua Sel Menjadi Putih Bersih di Mode Print (B&W) */
   body.print-bw-mode table.main-tbl th, 
-  body.print-bw-mode table.main-tbl td {
+  body.print-bw-mode table.main-tbl td,
+  body.print-bw-mode table.main-tbl tbody tr td.col-keyid,
+  body.print-bw-mode table.main-tbl tbody tr td.col-luas,
+  body.print-bw-mode table.main-tbl tbody tr td.col-act {
     border-right: 1px solid #000 !important;
     border-bottom: 1px solid #000 !important;
     color: #000 !important;
+    background: #ffffff !important; /* MENGHILANGKAN WARNA GELAP DI KOLOM FREEZE */
   }
+  
   body.print-bw-mode table.main-tbl th {
     background: #f0f0f0 !important;
     color: #000 !important;
