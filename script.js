@@ -17,10 +17,27 @@ const PROG_COLOR = {'01':'#4B5563','02':'#EF4444','03':'#EAB308','04':'#22C55E',
 
 // ── State ─────────────────────────────────────────────────────────────────
 let allData    = [];
-let filterMode = 'all';
+let filterMode = 'all'; // Menyimpan mode: 'all', 'backlog', 'bukan', atau kode progress ('01'-'05')
 let searchKey  = '';
 let sortCol    = 'No';
 let sortDir    = 1;
+
+// ── Helper functions untuk merapikan tanggal ──────────────────────────────
+function formatNumericDate(dateStr) {
+  if (!dateStr || dateStr === '-') return '-';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const y = date.getFullYear();
+    
+    return `${d}-${m}-${y}`; // Hasil akhir singkat: 12-05-2026
+  } catch (e) {
+    return dateStr;
+  }
+}
 
 // ── CSV Parser ────────────────────────────────────────────────────────────
 function parseCSV(rows) {
@@ -45,7 +62,7 @@ function parseCSV(rows) {
       COOR: row['COOR'] || '-',
       ProgPct: parseFloat(row['Prog(%)']) || 0,
       QCPct: parseFloat(row['QC(%)']) || 0,
-      DL: row['DATELINE'] || '-',
+      DL: formatNumericDate(row['DATELINE']), // Tanggal otomatis dipotong singkat disini
       Komit: row['Komitmen 22'] || '-',
       isBacklog: bl === 'Backlog1' || bl === 'Backlog2' || bl === 'Backlog3',
       pk,
@@ -53,7 +70,7 @@ function parseCSV(rows) {
   });
 }
 
-// ── Helper functions ──────────────────────────────────────────────────────
+// ── Helper UI ─────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const f1 = n => (Math.round(n * 10) / 10).toFixed(1).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const pct = (a, b) => b > 0 ? ((a / b) * 100).toFixed(1) : '0.0';
@@ -71,7 +88,7 @@ function renderAll() {
   const bkH = bk.reduce((s, r) => s + r.Luas, 0);
   const gtH = blH + bkH;
 
-  // KPI
+  // KPI Cards
   if ($('v-bl-ha')) $('v-bl-ha').innerHTML = `${f1(blH)} <span class="unit">ha</span>`;
   if ($('v-bl-ct')) $('v-bl-ct').textContent = `${bl.length} petak`;
   if ($('v-bl-pct')) $('v-bl-pct').textContent = `${pct(blH, gtH)}% dari total`;
@@ -95,7 +112,7 @@ function renderAll() {
       <span class="ov-leg-item"><span class="ov-dot" style="background:#10B981"></span>Bukan BL: ${f1(bkH)} ha (${(100 - blPct).toFixed(1)}%)</span>`;
   }
 
-  // Kategori KPI
+  // Kategori KPI Backlog 1, 2, 3
   ['Backlog1', 'Backlog2', 'Backlog3'].forEach((cat, i) => {
     const idx = i + 1;
     const rows = bl.filter(r => r.Backlog === cat);
@@ -115,16 +132,16 @@ function renderAll() {
   if ($('rk-bl-pk')) $('rk-bl-pk').textContent = bl.length;
   if ($('rk-bk-pk')) $('rk-bk-pk').textContent = bk.length;
 
-  // Donut
+  // Donut & Legend
   renderDonut();
 
   // Alert
   renderAlert(bl, bk, gtH, blH);
 
-  // Table
+  // Table Utama
   renderTable();
 
-  // Update topbar
+  // Update topbar time
   const now = new Date();
   const opts = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
   if ($('topbar-update')) $('topbar-update').textContent = '⟳ Update Terakhir: ' + now.toLocaleDateString('id-ID', opts) + ' WIB';
@@ -181,7 +198,7 @@ function renderBarChart(elId, groupKey) {
   }).join('') : '<div class="no-data">Tidak ada data</div>';
 }
 
-// ── Progress Status Donut ─────────────────────────────────────────────────
+// ── Progress Status Donut dengan Fitur Filter Klik ────────────────────────
 function renderDonut() {
   const statusMap = {};
   allData.forEach(r => {
@@ -222,19 +239,39 @@ function renderDonut() {
     circle.setAttribute('stroke-dasharray', `${dash} ${gap}`);
     circle.setAttribute('stroke-dashoffset', cumulOffset);
     circle.setAttribute('stroke-linecap', 'butt');
+    
+    // Klik pada busur Donut Chart untuk memfilter progress status
+    circle.style.cursor = 'pointer';
+    circle.addEventListener('click', () => {
+      filterMode = seg.key;
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      renderTable();
+    });
+
     svg.appendChild(circle);
     cumulOffset -= dash;
 
     const pctStr = (seg.pct * 100).toFixed(1);
     const haStr = f1(seg.val);
     if (legend) {
-      legend.innerHTML += `<div class="donut-row">
+      legend.innerHTML += `<div class="donut-row donut-row-clickable" data-status="${seg.key}" style="cursor:pointer;">
         <div class="donut-dot" style="background:${PROG_COLOR[seg.key]}"></div>
         <span>${PROG_LABEL[seg.key]}</span>
         <span class="donut-row-val">${haStr} ha (${pctStr}%)</span>
       </div>`;
     }
   });
+
+  // Klik pada baris list legenda teks untuk memfilter progress status
+  if (legend) {
+    legend.querySelectorAll('.donut-row-clickable').forEach(row => {
+      row.addEventListener('click', (e) => {
+        filterMode = e.currentTarget.dataset.status;
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        renderTable();
+      });
+    });
+  }
 }
 
 // ── Alert & Insight ───────────────────────────────────────────────────────
@@ -278,13 +315,20 @@ function renderAlert(bl, bk, gtH, blH) {
   }
 }
 
-// ── Table ─────────────────────────────────────────────────────────────────
+// ── Table Render & Filter Logic ───────────────────────────────────────────
 function renderTable() {
   let rows = [...allData];
 
-  if (filterMode === 'backlog') rows = rows.filter(r => r.isBacklog);
-  if (filterMode === 'bukan') rows = rows.filter(r => !r.isBacklog);
+  // Eksekusi filter berdasarkan mode tab ataupun pilihan status donut chart
+  if (filterMode === 'backlog') {
+    rows = rows.filter(r => r.isBacklog);
+  } else if (filterMode === 'bukan') {
+    rows = rows.filter(r => !r.isBacklog);
+  } else if (['01', '02', '03', '04', '05'].includes(filterMode)) {
+    rows = rows.filter(r => r.pk === filterMode); // Filter berdasarkan status '01', '02' dsb.
+  }
 
+  // Saring berdasarkan keyword input pencarian
   if (searchKey) {
     const q = searchKey.toLowerCase();
     rows = rows.filter(r =>
@@ -296,6 +340,7 @@ function renderTable() {
     );
   }
 
+  // Pengurutan (Sorting) Kolom
   rows.sort((a, b) => {
     let va = a[sortCol], vb = b[sortCol];
     if (['No', 'Luas', 'Hari'].includes(sortCol)) {
@@ -347,7 +392,7 @@ function renderTable() {
     }).join('');
   }
 
-  // Re-attach sort listeners
+  // Pasang ulang trigger sort pada header kolom table
   document.querySelectorAll('.main-tbl th[data-col]').forEach(th => {
     th.onclick = () => {
       const c = th.dataset.col;
@@ -368,7 +413,7 @@ function renderTable() {
   });
 }
 
-// ===== TAMBAHAN UNTUK API INTEGRATION =====
+// ── Fetch Data dari Apps Script API ───────────────────────────────────────
 async function loadCSVFromAPI() {
   showLoading(true);
   
@@ -382,8 +427,6 @@ async function loadCSVFromAPI() {
     if (result.success) {
       allData = parseCSV(result.data);
       renderAll();
-      const updateEl = document.getElementById('topbar-update');
-      if (updateEl) updateEl.textContent = `⟳ Update Terakhir: ${new Date().toLocaleString()} WIB`;
       showToastMsg(`✅ ${allData.length} baris dimuat`, 'ok');
     } else {
       throw new Error(result.error || 'Failed to load data');
@@ -408,7 +451,7 @@ function showToastMsg(msg, type = 'ok') {
 
 window.loadCSVFromAPI = loadCSVFromAPI;
 
-// Auto-refresh setiap 10 menit
+// Auto-refresh data otomatis dari server setiap 10 menit
 setInterval(() => {
   if (localStorage.getItem('fmis_token')) {
     loadCSVFromAPI();
@@ -416,34 +459,31 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 
-// ── 🆕 INISIALISASI EVENT LISTENERS (PENCARIAN & FILTER TAB) ─────────────────
+// ── INISIALISASI EVENT LISTENERS KONTROL UTAMA ────────────────────────────
 function initDashboardControls() {
-  // 1. Handler Real-time Input Pencarian
+  // 1. Handler Real-time Input Kotak Pencarian
   const searchInput = document.getElementById('search-input');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       searchKey = e.target.value;
-      renderTable(); // Filter ulang tabel setiap kali user mengetik
+      renderTable();
     });
   }
 
-  // 2. Handler Klik Navigasi Tab (Semua, Backlog, Bukan BL)
+  // 2. Handler Navigasi Tab Utama Atas (Semua, Backlog, Bukan BL)
   const tabs = document.querySelectorAll('.filter-tab');
   tabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
-      // Hapus kelas 'active' dari semua tab
       tabs.forEach(t => t.classList.remove('active'));
-      // Tambahkan kelas 'active' ke tab yang sedang diklik
       e.currentTarget.classList.add('active');
       
-      // Ambil nilai filter dari atribut HTML data-f ("all", "backlog", "bukan")
-      filterMode = e.currentTarget.dataset.f;
-      renderTable(); // Refresh tabel berdasarkan mode filter terpilih
+      filterMode = e.currentTarget.dataset.f; // Nilai 'all', 'backlog', atau 'bukan'
+      renderTable();
     });
   });
 }
 
-// Menjalankan fungsi di atas segera setelah dokumen HTML selesai diparse
+// Jalankan inisialisasi kontrol dashboard setelah DOM siap
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initDashboardControls);
 } else {
