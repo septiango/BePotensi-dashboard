@@ -118,7 +118,6 @@
   </nav>
 
   <div class="wrap">
-    <!-- KPI UTAMA -->
     <div class="kpi-row three-col">
       <div class="kpi-card k-bl"><div class="kpi-inner"><div><div class="kpi-label">TOTAL BACKLOG</div><div class="kpi-val" id="v-bl-ha">— <span class="unit">ha</span></div><div class="kpi-sub" id="v-bl-ct">— petak</div><span class="kpi-badge badge-bl" id="v-bl-pct">—%</span></div><div class="kpi-icon kpi-icon-bl"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/><circle cx="17" cy="18" r="3" fill="#EF4444" stroke="none"/><path d="M17 16.5v1l.5.5" stroke="white" stroke-width="1.2"/></svg></div></div></div>
       <div class="kpi-card k-bk"><div class="kpi-inner"><div><div class="kpi-label">BUKAN BACKLOG</div><div class="kpi-val" id="v-bk-ha">— <span class="unit">ha</span></div><div class="kpi-sub" id="v-bk-ct">— petak</div><span class="kpi-badge badge-bk" id="v-bk-pct">—%</span></div><div class="kpi-icon kpi-icon-bk"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div></div>
@@ -142,9 +141,44 @@
     </div>
 
     <div class="sec-head">DETAIL PETAK KERJA</div>
-    <div class="filter-bar"><div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="search-input" id="search-input" placeholder="Cari KeyID, aktivitas, SPV, COOR..."/></div><div class="tab-row"><button class="filter-tab active t-all" data-f="all">Semua</button><button class="filter-tab t-bl" data-f="backlog">Backlog</button><button class="filter-tab t-bk" data-f="bukan">Bukan BL</button></div><div class="row-count" id="row-count">— baris</div></div>
+    
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="search-input" placeholder="Cari KeyID, aktivitas, SPV, COOR..."/>
+      </div>
+      <div class="tab-row">
+        <button class="filter-tab active t-all" data-f="all">Semua</button>
+        <button class="filter-tab t-bl" data-f="backlog">Backlog</button>
+        <button class="filter-tab t-bk" data-f="bukan">Bukan BL</button>
+      </div>
+      <div class="row-count" id="row-count">— baris</div>
+    </div>
 
-    <div class="table-outer"><div class="table-scroll"><table class="main-tbl" id="main-tbl"><thead><tr><th data-col="No" class="sorted">No<span class="sort-arr">▲</span></th><th data-col="Backlog">Tipe</th><th data-col="KeyID">KeyID</th><th data-col="Luas" style="text-align:right">Luas</th><th data-col="Activity Description">Aktivitas</th><th data-col="Progress Status">Status</th><th data-col="Hari" style="text-align:right">Hari</th><th data-col="SPV">SPV</th><th data-col="COOR">COOR</th><th data-col="DATELINE">Deadline</th><th data-col="Komitmen 22" style="text-align:center">Komit</th></tr></thead><tbody id="tbl-body"><tr><td colspan="11" class="no-data">Memuat data...</td></tr></tbody></td></div></div>
+    <div class="table-outer">
+      <div class="table-scroll">
+        <table class="main-tbl" id="main-tbl">
+          <thead>
+            <tr>
+              <th data-col="No" class="sorted">No<span class="sort-arr">▲</span></th>
+              <th data-col="Backlog">Tipe</th>
+              <th data-col="KeyID">KeyID</th>
+              <th data-col="Luas" style="text-align:right">Luas</th>
+              <th data-col="Activity Description">Aktivitas</th>
+              <th data-col="Progress Status">Status</th>
+              <th data-col="Hari" style="text-align:right">Hari</th>
+              <th data-col="SPV">SPV</th>
+              <th data-col="COOR">COOR</th>
+              <th data-col="DATELINE">Deadline</th>
+              <th data-col="Komitmen 22" style="text-align:center">Komit</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-body">
+            <tr><td colspan="11" class="no-data">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
     <div class="bottom-grid">
       <div class="panel-card"><div class="panel-title">RINGKASAN CEPAT</div><div class="ringkasan-grid"><div class="rk-item"><div class="rk-icon">🌍</div><div class="rk-val" id="rk-total-ha">—</div><div class="rk-lbl">Total Area</div></div><div class="rk-item"><div class="rk-icon">📋</div><div class="rk-val" id="rk-total-pk">—</div><div class="rk-lbl">Total Petak</div></div><div class="rk-item"><div class="rk-icon">⚠️</div><div class="rk-val" id="rk-bl-pk">—</div><div class="rk-lbl">Petak Backlog</div></div><div class="rk-item"><div class="rk-icon">✅</div><div class="rk-val" id="rk-bk-pk">—</div><div class="rk-lbl">Petak Non BL</div></div></div></div>
