@@ -523,63 +523,6 @@ table.main-tbl tbody tr:hover td.col-keyid,
 table.main-tbl tbody tr:hover td.col-luas,
 table.main-tbl tbody tr:hover td.col-act { background: #232a3b !important; }
 
-/* =========================================================
-   CSS TAMBAHAN KHUSUS NAVIGASI & YTD DASHBOARD
-========================================================= */
-.main-nav-container {
-  padding: 12px 14px 4px;
-  display: flex;
-  justify-content: center;
-  background: var(--bg);
-  position: sticky;
-  top: 53px;
-  z-index: 45;
-}
-.main-nav {
-  display: flex;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  padding: 5px;
-  border-radius: 12px;
-  gap: 5px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: var(--shadow);
-}
-.nav-btn {
-  flex: 1; border: none; background: transparent; color: var(--text2);
-  padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: 700;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  gap: 8px; transition: all 0.3s;
-}
-.nav-dot { width: 6px; height: 6px; background: var(--text3); border-radius: 50%; transition: all 0.3s;}
-.nav-btn.active { background: var(--accent); color: #0D1117; }
-.nav-btn.active .nav-dot { background: #0D1117; box-shadow: 0 0 8px rgba(0,0,0,0.5); }
-.nav-btn:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.05); }
-
-.content-section { display: none; }
-.content-section.active { display: block; animation: fadeIn 0.4s ease-out; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-/* Gaya Khusus Halaman YTD */
-.ytd-header { display: flex; justify-content: space-between; align-items: flex-end; margin: 10px 0 20px; }
-.ytd-title { font-size: 18px; font-weight: 900; color: var(--text); letter-spacing: 0.05em; line-height: 1.2; }
-.ytd-sub { font-size: 10px; color: var(--text2); margin-top: 4px; font-weight: 500;}
-.ytd-badge { background: var(--bg3); border: 1px solid var(--accent); color: var(--accent); padding: 5px 12px; border-radius: 20px; font-size: 9px; font-weight: 800; letter-spacing: 0.1em; }
-
-.ytd-mini-bar { width: 100%; height: 5px; background: rgba(255,255,255,0.06); border-radius: 10px; margin-top: 12px; overflow: hidden; }
-.ytd-mini-bar .fill { height: 100%; transition: width 1s ease; }
-
-.ytd-chart-container { display: flex; gap: 10px; height: 220px; padding: 20px 5px 10px; position: relative; }
-.ytd-axis-y { display: flex; flex-direction: column; justify-content: space-between; font-size: 9px; color: var(--text3); font-family: 'IBM Plex Mono', monospace; text-align: right; min-width: 25px; padding-bottom: 20px;}
-.ytd-chart-main { flex: 1; display: flex; flex-direction: column; position: relative; }
-.area-chart { flex: 1; width: 100%; overflow: visible; }
-.ytd-axis-x { display: flex; justify-content: space-between; margin-top: 10px; font-size: 9px; color: var(--text3); font-weight: 700; position: absolute; bottom: 0; width: 100%;}
-
-.chart-legend { display: flex; justify-content: center; gap: 24px; margin-top: 10px; padding-top: 15px; border-top: 1px solid var(--border); }
-.leg-item { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text2); font-weight: 600; }
-.leg-item .dot { width: 10px; height: 10px; border-radius: 3px; }
-
 /* ========================================================== */
 /* ======== FITUR CETAK (PRINT & PDF) COMPACT & SMART ======= */
 /* ========================================================== */
@@ -595,16 +538,12 @@ table.main-tbl tbody tr:hover td.col-act { background: #232a3b !important; }
     color-adjust: exact !important;
   }
 
-  /* Sembunyikan Navigasi, Halaman YTD, dan elemen yang tidak perlu */
-  .main-nav-container, #section-ytd,
+  /* Sembunyikan elemen dashboard yg tdk perlu dicetak */
   #loginContainer, .topbar, .kpi-row, .overview-wrap, .sec-head, 
   .legend-strip, .charts-grid, .bottom-grid, .alert-card, .footer, 
   .loading-overlay, .toast, .search-wrap, .tab-row, .export-row {
     display: none !important;
   }
-  
-  /* Paksa tabel MTD untuk tampil saat dicetak */
-  #section-mtd { display: block !important; }
 
   /* Rapikan Layout */
   .wrap { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
@@ -656,7 +595,7 @@ table.main-tbl tbody tr:hover td.col-act { background: #232a3b !important; }
     border-right: 1px solid #000 !important;
     border-bottom: 1px solid #000 !important;
     color: #000 !important;
-    background: #ffffff !important;
+    background: #ffffff !important; /* MENGHILANGKAN WARNA GELAP DI KOLOM FREEZE */
   }
   
   body.print-bw-mode table.main-tbl th {
