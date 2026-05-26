@@ -1,4 +1,7 @@
-// ===== FMIS DASHBOARD — SCRIPT LENGKAP DENGAN API INTEGRATION =====
+// ===== FMIS DASHBOARD — SCRIPT LENGKAP =====
+
+// 1. URL APPS SCRIPT ANDA (Dideklarasikan SEKALI SAJA di sini)
+window.APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJwzBiW8CwIIslkX3TOH0dQBWFKjT0RnxK6fyDMHxf_hwEdjJ4uopchg8JLfUk8lDXQA/exec';
 
 // ── Progress mapping ──────────────────────────────────────────────────────
 const PROG_KEY = s => {
@@ -17,10 +20,12 @@ const PROG_COLOR = {'01':'#4B5563','02':'#EF4444','03':'#EAB308','04':'#22C55E',
 
 // ── State ─────────────────────────────────────────────────────────────────
 let allData    = [];
-let filterMode = 'all'; // Menyimpan mode: 'all', 'backlog', 'bukan', atau kode progress ('01'-'05')
+let filterMode = 'all'; 
 let searchKey  = '';
 let sortCol    = 'No';
 let sortDir    = 1;
+let authToken  = null;
+let currentUser = null;
 
 // ── Helper functions untuk merapikan tanggal ──────────────────────────────
 function formatNumericDate(dateStr) {
@@ -28,11 +33,9 @@ function formatNumericDate(dateStr) {
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return dateStr;
-    
     const d = String(date.getDate()).padStart(2, '0');
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const y = date.getFullYear();
-    
     return `${d}-${m}-${y}`; 
   } catch (e) {
     return dateStr;
@@ -60,14 +63,11 @@ function parseCSV(rows) {
       TYPE: row['TYPE'] || '-',
       Luas: luas,
       Act: row['Activity Description'] || '-',
-      Comp: row['Completion'] || '-',
       Hari: hari,
       SPK: row['SPK'] || '-',
       PS: row['Progress Status'] || '-',
       SPV: row['SPV'] || '-',
       COOR: row['COOR'] || '-',
-      ProgPct: parseFloat(row['Prog(%)']) || 0,
-      QCPct: parseFloat(row['QC(%)']) || 0,
       DL: formatNumericDate(row['DATELINE']), 
       DL_sort: dl_sort_val,
       Komit: row['Komitmen 22'] || '-',
@@ -87,7 +87,15 @@ function showLoading(v) {
   if (el) el.style.display = v ? 'flex' : 'none';
 }
 
-// ── Render All ────────────────────────────────────────────────────────────
+function showToastMsg(msg, type = 'ok') {
+  const toast = $('toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ── Render Dashboard (MTD) ────────────────────────────────────────────────
 function renderAll() {
   const bl = allData.filter(r => r.isBacklog);
   const bk = allData.filter(r => !r.isBacklog);
@@ -95,7 +103,6 @@ function renderAll() {
   const bkH = bk.reduce((s, r) => s + r.Luas, 0);
   const gtH = blH + bkH;
 
-  // KPI Cards
   if ($('v-bl-ha')) $('v-bl-ha').innerHTML = `${f1(blH)} <span class="unit">ha</span>`;
   if ($('v-bl-ct')) $('v-bl-ct').textContent = `${bl.length} petak`;
   if ($('v-bl-pct')) $('v-bl-pct').textContent = `${pct(blH, gtH)}% dari total`;
@@ -110,7 +117,6 @@ function renderAll() {
 
   renderGtArc(blH, bkH, gtH);
 
-  // Proporsi bar
   const blPct = gtH > 0 ? (blH / gtH) * 100 : 0;
   if ($('ov-fill')) $('ov-fill').style.width = blPct + '%';
   if ($('ov-legend')) {
@@ -119,7 +125,6 @@ function renderAll() {
       <span class="ov-leg-item"><span class="ov-dot" style="background:#10B981"></span>Bukan BL: ${f1(bkH)} ha (${(100 - blPct).toFixed(1)}%)</span>`;
   }
 
-  // Kategori KPI Backlog 1, 2, 3
   ['Backlog1', 'Backlog2', 'Backlog3'].forEach((cat, i) => {
     const idx = i + 1;
     const rows = bl.filter(r => r.Backlog === cat);
@@ -129,37 +134,28 @@ function renderAll() {
     if ($(`v-b${idx}-pct`)) $(`v-b${idx}-pct`).textContent = `${pct(ha, blH)}% backlog`;
   });
 
-  // Charts
   renderBarChart('coor-chart', 'COOR');
   renderBarChart('spv-chart', 'SPV');
 
-  // Ringkasan Cepat
   if ($('rk-total-ha')) $('rk-total-ha').textContent = f1(gtH) + ' ha';
   if ($('rk-total-pk')) $('rk-total-pk').textContent = allData.length;
   if ($('rk-bl-pk')) $('rk-bl-pk').textContent = bl.length;
   if ($('rk-bk-pk')) $('rk-bk-pk').textContent = bk.length;
 
-  // Donut & Legend
   renderDonut();
-
-  // Alert
   renderAlert(bl, bk, gtH, blH);
-
-  // Table Utama
   renderTable();
 
-  // Update topbar time
   const now = new Date();
   const opts = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
   if ($('topbar-update')) $('topbar-update').textContent = '⟳ Update Terakhir: ' + now.toLocaleDateString('id-ID', opts) + ' WIB';
 }
 
-// ── Grand Total pie arc ─────────────────────────────────────────────────────
+// ── (Fungsi render UI lainnya seperti pie, bar chart, dsb) ────────────────
 function renderGtArc(blH, bkH, gtH) {
   if (!gtH) return;
   const cx = 50, cy = 50, r = 38;
   const blAngle = (blH / gtH) * 360;
-
   function arcPath(startDeg, endDeg) {
     const s = (startDeg - 90) * Math.PI / 180;
     const e = (endDeg - 90) * Math.PI / 180;
@@ -168,21 +164,18 @@ function renderGtArc(blH, bkH, gtH) {
     const large = (endDeg - startDeg) > 180 ? 1 : 0;
     return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
   }
-
   const blEl = document.getElementById('gt-arc-bl');
   const bkEl = document.getElementById('gt-arc-bk');
   if (blEl) blEl.setAttribute('d', arcPath(0, blAngle));
   if (bkEl) bkEl.setAttribute('d', arcPath(blAngle, 360));
 }
 
-// ── Stacked bar chart ─────────────────────────────────────────────────────
 function renderBarChart(elId, groupKey) {
   const map = {};
   allData.forEach(r => {
     const name = (r[groupKey] || '-').toUpperCase().trim();
     if (!map[name]) map[name] = { '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, total: 0 };
-    map[name][r.pk] += r.Luas;
-    map[name].total += r.Luas;
+    map[name][r.pk] += r.Luas; map[name].total += r.Luas;
   });
   const arr = Object.entries(map).map(([k, v]) => ({ name: k, ...v })).sort((a, b) => b.total - a.total);
   const maxT = Math.max(...arr.map(a => a.total), 1);
@@ -191,8 +184,7 @@ function renderBarChart(elId, groupKey) {
   
   container.innerHTML = arr.length ? arr.map(item => {
     const segs = ['01', '02', '03', '04', '05'].map(k => {
-      const v = item[k] || 0;
-      if (!v) return '';
+      const v = item[k] || 0; if (!v) return '';
       const w = (v / maxT * 100).toFixed(1);
       const lbl = parseFloat(w) > 7 ? f1(v) : '';
       return `<div class="bar-seg s${k.slice(1)}" style="width:${w}%" title="${PROG_LABEL[k]}: ${f1(v)} ha">${lbl}</div>`;
@@ -205,14 +197,9 @@ function renderBarChart(elId, groupKey) {
   }).join('') : '<div class="no-data">Tidak ada data</div>';
 }
 
-// ── Progress Status Donut dengan Fitur Filter Klik ────────────────────────
 function renderDonut() {
   const statusMap = {};
-  allData.forEach(r => {
-    if (!statusMap[r.pk]) statusMap[r.pk] = 0;
-    statusMap[r.pk] += r.Luas;
-  });
-
+  allData.forEach(r => { if (!statusMap[r.pk]) statusMap[r.pk] = 0; statusMap[r.pk] += r.Luas; });
   const total = Object.values(statusMap).reduce((s, v) => s + v, 0);
   if (!total) return;
 
@@ -220,13 +207,10 @@ function renderDonut() {
   const circ = 2 * Math.PI * r;
   const svg = document.getElementById('donut-svg');
   if (!svg) return;
-  
   svg.querySelectorAll('.donut-seg').forEach(el => el.remove());
 
   const order = ['01', '02', '03', '04', '05'];
-  const segments = order.filter(k => statusMap[k]).map(k => ({
-    key: k, val: statusMap[k], pct: statusMap[k] / total
-  }));
+  const segments = order.filter(k => statusMap[k]).map(k => ({ key: k, val: statusMap[k], pct: statusMap[k] / total }));
 
   let cumulOffset = circ * 0.25;
   const legend = document.getElementById('donut-legend');
@@ -236,34 +220,22 @@ function renderDonut() {
     const dash = seg.pct * circ;
     const gap = circ - dash;
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('class', 'donut-seg');
-    circle.setAttribute('cx', cx);
-    circle.setAttribute('cy', cy);
-    circle.setAttribute('r', r);
-    circle.setAttribute('fill', 'none');
-    circle.setAttribute('stroke', PROG_COLOR[seg.key]);
-    circle.setAttribute('stroke-width', strokeW);
-    circle.setAttribute('stroke-dasharray', `${dash} ${gap}`);
-    circle.setAttribute('stroke-dashoffset', cumulOffset);
-    circle.setAttribute('stroke-linecap', 'butt');
+    circle.setAttribute('class', 'donut-seg'); circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
+    circle.setAttribute('r', r); circle.setAttribute('fill', 'none');
+    circle.setAttribute('stroke', PROG_COLOR[seg.key]); circle.setAttribute('stroke-width', strokeW);
+    circle.setAttribute('stroke-dasharray', `${dash} ${gap}`); circle.setAttribute('stroke-dashoffset', cumulOffset);
+    circle.setAttribute('stroke-linecap', 'butt'); circle.style.cursor = 'pointer';
     
-    circle.style.cursor = 'pointer';
     circle.addEventListener('click', () => {
-      filterMode = seg.key;
-      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-      renderTable();
+      filterMode = seg.key; document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active')); renderTable();
     });
 
-    svg.appendChild(circle);
-    cumulOffset -= dash;
+    svg.appendChild(circle); cumulOffset -= dash;
 
-    const pctStr = (seg.pct * 100).toFixed(1);
-    const haStr = f1(seg.val);
     if (legend) {
       legend.innerHTML += `<div class="donut-row donut-row-clickable" data-status="${seg.key}" style="cursor:pointer;">
-        <div class="donut-dot" style="background:${PROG_COLOR[seg.key]}"></div>
-        <span>${PROG_LABEL[seg.key]}</span>
-        <span class="donut-row-val">${haStr} ha (${pctStr}%)</span>
+        <div class="donut-dot" style="background:${PROG_COLOR[seg.key]}"></div><span>${PROG_LABEL[seg.key]}</span>
+        <span class="donut-row-val">${f1(seg.val)} ha (${(seg.pct * 100).toFixed(1)}%)</span>
       </div>`;
     }
   });
@@ -271,37 +243,23 @@ function renderDonut() {
   if (legend) {
     legend.querySelectorAll('.donut-row-clickable').forEach(row => {
       row.addEventListener('click', (e) => {
-        filterMode = e.currentTarget.dataset.status;
-        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-        renderTable();
+        filterMode = e.currentTarget.dataset.status; document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active')); renderTable();
       });
     });
   }
 }
 
-// ── Alert & Insight ───────────────────────────────────────────────────────
 function renderAlert(bl, bk, gtH, blH) {
   const overdue = allData.filter(r => r.Hari < 0);
   const avgOverdue = overdue.length ? Math.round(overdue.reduce((s, r) => s + Math.abs(r.Hari), 0) / overdue.length) : 0;
   if ($('alert-avg-hari')) $('alert-avg-hari').textContent = avgOverdue || '—';
 
   const alerts = [];
-
-  const coorMap = {};
-  bl.forEach(r => {
-    const c = r.COOR || '-';
-    if (!coorMap[c]) coorMap[c] = 0;
-    coorMap[c] += r.Luas;
-  });
+  const coorMap = {}; bl.forEach(r => { const c = r.COOR || '-'; if (!coorMap[c]) coorMap[c] = 0; coorMap[c] += r.Luas; });
   const topCoor = Object.entries(coorMap).sort((a, b) => b[1] - a[1])[0];
   if (topCoor) alerts.push({ cls: 'red', icon: '🔴', text: `Backlog tertinggi: COOR ${topCoor[0]} (${f1(topCoor[1])} ha)` });
 
-  const spvMap = {};
-  bl.forEach(r => {
-    const s = r.SPV || '-';
-    if (!spvMap[s]) spvMap[s] = 0;
-    spvMap[s] += r.Luas;
-  });
+  const spvMap = {}; bl.forEach(r => { const s = r.SPV || '-'; if (!spvMap[s]) spvMap[s] = 0; spvMap[s] += r.Luas; });
   const topSpv = Object.entries(spvMap).sort((a, b) => b[1] - a[1])[0];
   if (topSpv) alerts.push({ cls: 'yellow', icon: '🟡', text: `SPV dengan tunggakan terbesar: ${topSpv[0]} (${f1(topSpv[1])} ha)` });
 
@@ -311,61 +269,31 @@ function renderAlert(bl, bk, gtH, blH) {
   const blPct = gtH > 0 ? ((blH / gtH) * 100).toFixed(1) : 0;
   alerts.push({ cls: 'red', icon: '🔴', text: `${blPct}% dari total area masih backlog` });
 
-  if ($('alert-list')) {
-    $('alert-list').innerHTML = alerts.map(a => `
-      <div class="alert-item">
-        <div class="alert-dot ${a.cls}">${a.icon}</div>
-        <span>${a.text}</span>
-      </div>`).join('');
-  }
+  if ($('alert-list')) $('alert-list').innerHTML = alerts.map(a => `<div class="alert-item"><div class="alert-dot ${a.cls}">${a.icon}</div><span>${a.text}</span></div>`).join('');
 }
 
-// ── Table Render & Filter Logic ───────────────────────────────────────────
 function renderTable() {
   let rows = [...allData];
-
-  // 1. FILTERING
-  if (filterMode === 'backlog') {
-    rows = rows.filter(r => r.isBacklog);
-  } else if (filterMode === 'bukan') {
-    rows = rows.filter(r => !r.isBacklog);
-  } else if (['01', '02', '03', '04', '05'].includes(filterMode)) {
-    rows = rows.filter(r => r.pk === filterMode);
-  }
+  if (filterMode === 'backlog') rows = rows.filter(r => r.isBacklog);
+  else if (filterMode === 'bukan') rows = rows.filter(r => !r.isBacklog);
+  else if (['01', '02', '03', '04', '05'].includes(filterMode)) rows = rows.filter(r => r.pk === filterMode);
 
   if (searchKey) {
     const q = searchKey.toLowerCase();
-    rows = rows.filter(r =>
-      r.KeyID.toLowerCase().includes(q) ||
-      r.Act.toLowerCase().includes(q) ||
-      r.SPV.toLowerCase().includes(q) ||
-      r.COOR.toLowerCase().includes(q) ||
-      r.Backlog.toLowerCase().includes(q)
-    );
+    rows = rows.filter(r => r.KeyID.toLowerCase().includes(q) || r.Act.toLowerCase().includes(q) || r.SPV.toLowerCase().includes(q) || r.COOR.toLowerCase().includes(q) || r.Backlog.toLowerCase().includes(q));
   }
 
-  // 2. PENGURUTAN (SORTING)
   rows.sort((a, b) => {
-    let va = a[sortCol];
-    let vb = b[sortCol];
-    
-    if (va === undefined) va = '';
-    if (vb === undefined) vb = '';
-
-    if (['No', 'Luas', 'Hari', 'ProgPct', 'QCPct', 'DL_sort'].includes(sortCol)) {
-      va = parseFloat(va) || 0;
-      vb = parseFloat(vb) || 0;
-      return (va - vb) * sortDir;
-    }
+    let va = a[sortCol], vb = b[sortCol];
+    if (va === undefined) va = ''; if (vb === undefined) vb = '';
+    if (['No', 'Luas', 'Hari', 'DL_sort'].includes(sortCol)) return ((parseFloat(va) || 0) - (parseFloat(vb) || 0)) * sortDir;
     return String(va).localeCompare(String(vb)) * sortDir;
   });
 
-  // Hitung subtotal luas dinamis
   const subtotalLuasActive = rows.reduce((s, r) => s + r.Luas, 0);
   if ($('row-count')) $('row-count').textContent = `Jumlah Petak: ${rows.length}`;
   if ($('subtotal-luas')) $('subtotal-luas').textContent = `Subtotal (filter aktif): ${f1(subtotalLuasActive)} Ha`;
 
-  // 3. RENDER HTML
   if (!rows.length) {
     if ($('tbl-body')) $('tbl-body').innerHTML = `<tr><td colspan="11"><div class="no-data">🔍 Tidak ada data</div></td></tr>`;
     return;
@@ -375,13 +303,9 @@ function renderTable() {
     $('tbl-body').innerHTML = rows.map((r, index) => {
       const isbl = r.isBacklog;
       const rowCls = isbl ? 'row-bl' : 'row-bk';
-      const blBadge = {
-        Backlog1: 'bl1 tbl-badge', Backlog2: 'bl2 tbl-badge', Backlog3: 'bl3 tbl-badge', Bukan_Backlog: 'blk tbl-badge'
-      }[r.Backlog] || 'blk tbl-badge';
+      const blBadge = { Backlog1: 'bl1 tbl-badge', Backlog2: 'bl2 tbl-badge', Backlog3: 'bl3 tbl-badge', Bukan_Backlog: 'blk tbl-badge' }[r.Backlog] || 'blk tbl-badge';
       const blLabel = { Backlog1: 'BL-1', Backlog2: 'BL-2', Backlog3: 'BL-3', Bukan_Backlog: 'NON-BL' }[r.Backlog] || 'NON-BL';
-      const psCls = `ps-chip ${PROG_CHIP[r.pk]}`;
-      const psLbl = PROG_LABEL[r.pk];
-
+      
       const hariVal = r.Hari;
       const hariCls = hariVal < 0 ? 'hari-neg' : (hariVal > 0 ? 'hari-pos' : 'hari-zero');
       const hariStr = hariVal < 0 ? `${hariVal}` : (hariVal > 0 ? `+${hariVal}` : '0');
@@ -395,7 +319,7 @@ function renderTable() {
         <td class="keyid-cell col-keyid">${r.KeyID}</td>
         <td class="luas-cell col-luas">${f1(r.Luas)}</td>
         <td class="col-act" title="${r.Act}">${r.Act}</td>
-        <td><span class="${psCls}">${psLbl}</span></td>
+        <td><span class="ps-chip ${PROG_CHIP[r.pk]}">${PROG_LABEL[r.pk]}</span></td>
         <td class="${hariCls}" style="text-align:right">${hariStr}</td>
         <td style="font-size:11px">${r.SPV}</td>
         <td style="font-size:11px;font-weight:700">${r.COOR}</td>
@@ -406,136 +330,96 @@ function renderTable() {
   }
 }
 
-// ── INIT EVENT LISTENER HEADER TABLE ──────────────────────────────────────
-function initTableSort() {
-  document.querySelectorAll('.main-tbl th[data-col]').forEach(th => {
-    th.onclick = () => {
-      const c = th.dataset.col;
-      if (sortCol === c) sortDir *= -1;
-      else { sortCol = c; sortDir = 1; }
-      
-      document.querySelectorAll('.main-tbl th').forEach(t => {
-        t.classList.remove('sorted');
-        const arr = t.querySelector('.sort-arr');
-        if (arr) arr.remove();
-      });
-      
-      th.classList.add('sorted');
-      const sp = document.createElement('span');
-      sp.className = 'sort-arr';
-      sp.textContent = sortDir === 1 ? '▲' : '▼';
-      th.appendChild(sp);
-      
-      renderTable();
-    };
-  });
+// ── SISTEM LOGIC LOGIN & API ───────────────────────────────────────────────
+window.handleLogin = async function() {
+  const username = $('loginUsername').value.trim();
+  const password = $('loginPassword').value;
+  const errorDiv = $('loginError');
+  
+  if (!username || !password) { errorDiv.textContent = 'Username dan password harus diisi'; errorDiv.style.display = 'block'; return; }
+  errorDiv.style.display = 'none';
+  
+  try {
+    const response = await fetch(`${window.APPS_SCRIPT_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
+    const result = await response.json();
+    if (result.success) {
+      localStorage.setItem('fmis_token', result.token);
+      localStorage.setItem('fmis_user', result.username);
+      window.location.reload(); // Refresh untuk trigger cek login otomatis
+    } else {
+      errorDiv.textContent = result.error || 'Login gagal'; errorDiv.style.display = 'block';
+    }
+  } catch (error) { errorDiv.textContent = 'Koneksi gagal. Periksa jaringan Anda.'; errorDiv.style.display = 'block'; }
 }
 
-// ── FUNGSI NAVIGASI TAB (MTD vs YTD) ──────────────────────────────────────
-window.switchSection = function(target, btn) {
-  // Sembunyikan seluruh section konten
-  document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-  // Hapus class active di tombol navigasi
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  
-  // Tampilkan section tujuan & jadikan tombol active
-  document.getElementById('section-' + target).classList.add('active');
-  btn.classList.add('active');
-};
-
-// ── FUNGSI CETAK / EXPORT ─────────────────────────────────────────────────
-window.exportPDF = function() {
-  document.body.classList.remove('print-bw-mode');
-  window.print();
-};
-
-window.printBWTabel = function() {
-  document.body.classList.add('print-bw-mode');
-  window.print();
-  setTimeout(() => { document.body.classList.remove('print-bw-mode'); }, 1000);
-};
-
-// ── Fetch Data dari Apps Script API ───────────────────────────────────────
 async function loadCSVFromAPI() {
   showLoading(true);
-  
   try {
     const token = localStorage.getItem('fmis_token');
     if (!token) throw new Error('No auth token');
     
-    // Asumsi menggunakan endpoint Apps Script Anda yang sudah dimodifikasi (mengeluarkan data dan ytdData)
-    const response = await fetch(`${APPS_SCRIPT_URL}?action=getData&token=${encodeURIComponent(token)}`);
+    const response = await fetch(`${window.APPS_SCRIPT_URL}?action=getData&token=${encodeURIComponent(token)}`);
     const result = await response.json();
     
     if (result.success) {
-      // 1. Render data Tabel MTD
       allData = parseCSV(result.data);
       renderAll();
 
-      // 2. Render data YTD (Jika Apps Script sudah dipasang code baru)
       if (result.ytdData && result.ytdData.length > 0) {
-        const totalBaris = result.ytdData[result.ytdData.length - 1]; // Baris terbawah (YTD)
-        if (document.getElementById('ytd-fert')) document.getElementById('ytd-fert').innerHTML = `${totalBaris.Fertilizer} <span class="unit">Ha</span>`;
-        if (document.getElementById('ytd-weed')) document.getElementById('ytd-weed').innerHTML = `${totalBaris.Weeding} <span class="unit">Ha</span>`;
-        if (document.getElementById('ytd-total')) document.getElementById('ytd-total').innerHTML = `${totalBaris.Total} <span class="unit">Ha</span>`;
+        const totalBaris = result.ytdData[result.ytdData.length - 1]; 
+        if ($('ytd-fert')) $('ytd-fert').innerHTML = `${totalBaris.Fertilizer} <span class="unit">Ha</span>`;
+        if ($('ytd-weed')) $('ytd-weed').innerHTML = `${totalBaris.Weeding} <span class="unit">Ha</span>`;
+        if ($('ytd-total')) $('ytd-total').innerHTML = `${totalBaris.Total} <span class="unit">Ha</span>`;
       }
-
       showToastMsg(`✅ ${allData.length} baris dimuat`, 'ok');
     } else {
       throw new Error(result.error || 'Failed to load data');
     }
-  } catch (error) {
-    console.error(error);
-    showToastMsg('❌ Gagal mengambil data dari server', 'err');
-    allData = [];
-    renderAll();
-  }
-  
+  } catch (error) { showToastMsg('❌ Gagal mengambil data dari server', 'err'); }
   showLoading(false);
 }
 
-function showToastMsg(msg, type = 'ok') {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.textContent = msg;
-  toast.className = `toast ${type} show`;
-  setTimeout(() => toast.classList.remove('show'), 3000);
-}
+// ── SISTEM INTERAKSI (NAVIGASI & TOMBOL) ──────────────────────────────────
+window.switchSection = function(target, btn) {
+  document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  $('section-' + target).classList.add('active');
+  btn.classList.add('active');
+};
 
-window.loadCSVFromAPI = loadCSVFromAPI;
+window.exportPDF = function() { document.body.classList.remove('print-bw-mode'); window.print(); };
+window.printBWTabel = function() { document.body.classList.add('print-bw-mode'); window.print(); setTimeout(() => { document.body.classList.remove('print-bw-mode'); }, 1000); };
 
-setInterval(() => {
-  if (localStorage.getItem('fmis_token')) {
-    loadCSVFromAPI();
-  }
-}, 10 * 60 * 1000);
-
-// ── INISIALISASI EVENT LISTENERS KONTROL UTAMA ────────────────────────────
 function initDashboardControls() {
-  const searchInput = document.getElementById('search-input');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      searchKey = e.target.value;
-      renderTable();
-    });
-  }
+  const searchInput = $('search-input');
+  if (searchInput) searchInput.addEventListener('input', (e) => { searchKey = e.target.value; renderTable(); });
 
-  const tabs = document.querySelectorAll('.filter-tab');
-  tabs.forEach(tab => {
+  document.querySelectorAll('.filter-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
-      tabs.forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
       e.currentTarget.classList.add('active');
-      
-      filterMode = e.currentTarget.dataset.f;
-      renderTable();
+      filterMode = e.currentTarget.dataset.f; renderTable();
     });
   });
 
-  initTableSort();
+  document.querySelectorAll('.main-tbl th[data-col]').forEach(th => {
+    th.onclick = () => {
+      const c = th.dataset.col;
+      if (sortCol === c) sortDir *= -1; else { sortCol = c; sortDir = 1; }
+      document.querySelectorAll('.main-tbl th').forEach(t => { t.classList.remove('sorted'); const arr = t.querySelector('.sort-arr'); if (arr) arr.remove(); });
+      th.classList.add('sorted');
+      const sp = document.createElement('span'); sp.className = 'sort-arr'; sp.textContent = sortDir === 1 ? '▲' : '▼';
+      th.appendChild(sp); renderTable();
+    };
+  });
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initDashboardControls);
-} else {
+// Cek status saat halaman pertama kali dimuat
+document.addEventListener('DOMContentLoaded', () => {
   initDashboardControls();
-}
+  if (localStorage.getItem('fmis_token')) {
+    $('loginContainer').style.display = 'none';
+    $('dashboardWrapper').style.display = 'block';
+    loadCSVFromAPI();
+  }
+});
